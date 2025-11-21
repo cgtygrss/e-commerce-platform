@@ -1,64 +1,124 @@
-import React,{useState, useEffect} from "react";
-import {AiOutlineClose, AiOutlineMenu} from 'react-icons/ai'
-import {IoBag} from 'react-icons/io5'
-import {FaRegUser} from 'react-icons/fa'
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { AiOutlineClose, AiOutlineMenu } from 'react-icons/ai';
+import { IoBagOutline } from 'react-icons/io5';
+import { FaRegUser } from 'react-icons/fa';
+import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
-const[nav,setNav] = useState(true);
+    const [nav, setNav] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const location = useLocation();
+    const { toggleCart, cartCount } = useCart();
+    const { user } = useAuth();
 
-const handleNav = () => setNav(!nav)
+    // Handle scroll effect
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 50) {
+                setScrolled(true);
+            } else {
+                setScrolled(false);
+            }
+        };
+        window.addEventListener("scroll", handleScroll);
+        return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
 
-const [width,setWidth] = useState(window.innerWidth)
+    // Close mobile menu on route change
+    useEffect(() => {
+        setNav(false);
+    }, [location]);
 
-useEffect(() => {
-    const handleResize = () => setWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    console.log(window.innerWidth);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []
-);
+    const handleNav = () => setNav(!nav);
 
-useEffect(() => {
-    // Add event listener for resizing
-    const handleResize = () => {
-      if (window.innerWidth > 770) {
-        setNav(true); // Reset nav if the screen width becomes bigger than 770
-      }
-    };
+    const navLinks = [
+        { name: "Home", path: "/" },
+        { name: "Collections", path: "/collections" },
+        { name: "About", path: "/about" },
+        { name: "Contact", path: "/contact" },
+    ];
 
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    return (
+        <nav className={`fixed w-full z-50 transition-all duration-300 ${scrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'}`}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
 
-    return(
-        
-        <div className={width > 770 ? "flex flex-wrap justify-between max-w-[80%] items-center h-auto mx-auto px-4" : "flex justify-between max-w-[80%] items-center h-auto mx-auto px-4"}>
-            <div onClick={handleNav} className={nav ? width < 770 ? "block" : "hidden" : "block"}>
-                {!nav ? <AiOutlineClose size={20}/> : <AiOutlineMenu size={20}/>}
-            </div>
-            <h1 className="w-full text-3xl font-bold text-[#00df9a] m-4 text-center">Marka Logo</h1>
-            <div>
-                <ul className={nav ? width > 770 ?  "flex space-x-4 uppercase text-center text-sm" : "hidden" : "hidden"}>
-                    <li className="p-2 hover:underline hover:py-1 transition-all duration-500">Necklace</li>
-                    <li className="p-2 hover:underline hover:py-1 transition-all duration-500">Earrings</li>
-                    <li className="p-2 hover:underline hover:py-1 transition-all duration-500">Bracelet</li>
-                    <li className="p-2 hover:underline hover:py-1 transition-all duration-500">Contact</li>
+                {/* Mobile Menu Button */}
+                <div onClick={handleNav} className="md:hidden cursor-pointer z-50 text-primary">
+                    {nav ? <AiOutlineClose size={25} /> : <AiOutlineMenu size={25} />}
+                </div>
+
+                {/* Logo */}
+                <div className="flex-grow md:flex-grow-0 text-center md:text-left">
+                    <Link to="/" className="text-2xl font-serif font-bold tracking-widest text-primary">
+                        LUMIÈRE
+                    </Link>
+                </div>
+
+                {/* Desktop Navigation */}
+                <ul className="hidden md:flex space-x-8 uppercase text-xs tracking-widest font-medium text-gray-600">
+                    {navLinks.map((link) => (
+                        <li key={link.name}>
+                            <Link to={link.path} className="hover:text-secondary transition-colors">
+                                {link.name}
+                            </Link>
+                        </li>
+                    ))}
                 </ul>
-            </div>
-            <ul className="flex space-x-5">
-                <li>{<FaRegUser size={20}/>}</li>
-                <li>{<IoBag size={20}/>}</li>
-            </ul>
-            <div className={!nav ? 'fixed left-0 top-24 w-[60%] h-full border-r border-r-gray-900 text-black' : 'fixed left-[-100%] ease-in-out duration-500'}>
-                <ul className="uppercase">
-                    <li className="p-4 border-b border-gray-600">Necklace</li>
-                    <li className="p-4 border-b border-gray-600">Earrings</li>
-                    <li className="p-4 border-b border-gray-600">Bracelet</li>
-                    <li className="p-4">Contact</li>
-                </ul>
-            </div>
-        </div>
-    )
-}
 
-export default Navbar
+                {/* Icons */}
+                <div className="flex space-x-6 items-center text-primary">
+                    {user && user.isAdmin && (
+                        <Link to="/admin/productlist" className="hover:text-secondary transition-colors font-medium text-sm">
+                            ADMIN
+                        </Link>
+                    )}
+                    <Link to={user ? "/profile" : "/login"} className="hover:text-secondary transition-colors">
+                        <FaRegUser size={20} />
+                    </Link>
+                    <button onClick={toggleCart} className="hover:text-secondary transition-colors relative">
+                        <IoBagOutline size={22} />
+                        <span className="absolute -top-2 -right-2 bg-secondary text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">
+                            {cartCount}
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Mobile Menu Overlay */}
+            <div className={`fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300 md:hidden ${nav ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={handleNav}></div>
+
+            {/* Mobile Menu Sidebar */}
+            <div className={`fixed top-0 left-0 w-[75%] sm:w-[60%] h-full bg-white z-50 transition-transform duration-500 ease-in-out transform md:hidden ${nav ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="p-8 flex flex-col h-full">
+                    <div className="mb-10">
+                        <h2 className="text-2xl font-serif font-bold text-primary">LUMIÈRE</h2>
+                    </div>
+                    <ul className="flex flex-col space-y-6 uppercase text-sm tracking-widest font-medium text-gray-800">
+                        {navLinks.map((link) => (
+                            <li key={link.name}>
+                                <Link to={link.path} className="block hover:text-secondary transition-colors">
+                                    {link.name}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                    <div className="mt-auto pt-8 border-t border-gray-100">
+                        {user && user.isAdmin && (
+                            <Link to="/admin/productlist" className="flex items-center space-x-4 text-gray-600 mb-4">
+                                <span>Admin Dashboard</span>
+                            </Link>
+                        )}
+                        <Link to={user ? "/profile" : "/login"} className="flex items-center space-x-4 text-gray-600 mb-4">
+                            <FaRegUser size={18} />
+                            <span>{user ? "My Account" : "Login / Register"}</span>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    );
+};
+
+export default Navbar;
