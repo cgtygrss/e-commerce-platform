@@ -2,21 +2,20 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 const Hero = () => {
-    return (
-        <section className="hero">
-            <div className="hero-content container">
-                <h1 className="hero-title">Elegance in Every Detail</h1>
-                <p className="hero-subtitle">Discover the Zetuli Collection. Timeless jewelry for the modern era.</p>
-                <div className="hero-buttons">
-                    <Link to="/shop" className="btn btn-primary">Shop Collection</Link>
-                    <Link to="/about" className="btn btn-outline">Our Story</Link>
-                </div>
-            </div>
-            <div className="hero-overlay"></div>
-            {/* Placeholder for video/image background */}
-            <div className="hero-bg"></div>
+  return (
+    <section className="hero">
+      <div className="hero-content container">
+        <h1 className="hero-title">Elegance in Every Detail</h1>
+        <p className="hero-subtitle">Discover the Zetuli Collection. Timeless jewelry for the modern era.</p>
+        <div className="hero-buttons">
+          <Link to="/shop" className="btn btn-primary">Shop Collection</Link>
+          <Link to="/about" className="btn btn-outline">Our Story</Link>
+        </div>
+      </div>
+      <div className="hero-overlay"></div>
+      <div className="hero-bg"></div>
 
-            <style>{`
+      <style>{`
         .hero {
           position: relative;
           height: 90vh;
@@ -30,7 +29,7 @@ const Hero = () => {
           left: 0;
           width: 100%;
           height: 100%;
-          background-image: url('https://images.unsplash.com/photo-1573408301185-9146fe634ad0?q=80&w=2075&auto=format&fit=crop');
+          background-image: url('https://images.unsplash.com/photo-1618220179428-22790b461013?q=80&w=1920&auto=format&fit=crop');
           background-size: cover;
           background-position: center;
           z-index: -2;
@@ -81,8 +80,8 @@ const Hero = () => {
           }
         }
       `}</style>
-        </section>
-    );
+    </section>
+  );
 };
 
 export default Hero;
