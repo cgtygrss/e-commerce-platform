@@ -1,4 +1,5 @@
 import React from 'react';
+import ScrollReveal from '../components/ScrollReveal';
 
 const About = () => {
   return (
@@ -9,24 +10,28 @@ const About = () => {
       </div>
 
       <div className="about-content grid-2-col">
-        <div className="about-text">
-          <h2>The Zetuli Philosophy</h2>
-          <p>
-            At Zetuli, we believe that jewelry is an art form—a way to express your unique identity and style.
-            Our journey began with a simple vision: to create pieces that are not only beautiful but also meaningful.
-          </p>
-          <p>
-            Every piece in our collection is meticulously designed and handcrafted by skilled artisans who share our passion for perfection.
-            We source only the finest materials, ensuring that each gemstone and metal meets our rigorous standards of quality and sustainability.
-          </p>
-          <p>
-            Whether you're looking for a statement piece for a special occasion or a subtle accent for everyday wear,
-            Zetuli offers a curated selection that transcends trends and stands the test of time.
-          </p>
-        </div>
-        <div className="about-image">
-          <img src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=2070&auto=format&fit=crop" alt="Jewelry Workshop" />
-        </div>
+        <ScrollReveal>
+          <div className="about-text">
+            <h2>The Zetuli Philosophy</h2>
+            <p>
+              At Zetuli, we believe that jewelry is an art form—a way to express your unique identity and style.
+              Our journey began with a simple vision: to create pieces that are not only beautiful but also meaningful.
+            </p>
+            <p>
+              Every piece in our collection is meticulously designed and handcrafted by skilled artisans who share our passion for perfection.
+              We source only the finest materials, ensuring that each gemstone and metal meets our rigorous standards of quality and sustainability.
+            </p>
+            <p>
+              Whether you're looking for a statement piece for a special occasion or a subtle accent for everyday wear,
+              Zetuli offers a curated selection that transcends trends and stands the test of time.
+            </p>
+          </div>
+        </ScrollReveal>
+        <ScrollReveal delay={0.2}>
+          <div className="about-image">
+            <img src="https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=2070&auto=format&fit=crop" alt="Jewelry Workshop" />
+          </div>
+        </ScrollReveal>
       </div>
 
       <style>{`

@@ -3,25 +3,25 @@ import { Link } from 'react-router-dom';
 import { ShoppingBag } from 'lucide-react';
 
 const ProductCard = ({ product }) => {
-    return (
-        <div className="product-card">
-            <div className="product-image-container">
-                <Link to={`/product/${product._id}`}>
-                    <img src={product.images[0]} alt={product.name} className="product-image" />
-                    <img src={product.images[1] || product.images[0]} alt={product.name} className="product-image-hover" />
-                </Link>
-                <button className="add-to-cart-btn">
-                    <ShoppingBag size={18} /> Add to Cart
-                </button>
-            </div>
-            <div className="product-info">
-                <h3 className="product-name">
-                    <Link to={`/product/${product._id}`}>{product.name}</Link>
-                </h3>
-                <p className="product-price">${product.price.toFixed(2)}</p>
-            </div>
+  return (
+    <div className="product-card">
+      <div className="product-image-container">
+        <Link to={`/product/${product._id}`}>
+          <img src={product.images[0]} alt={product.name} className="product-image" />
+          <img src={product.images[1] || product.images[0]} alt={product.name} className="product-image-hover" />
+        </Link>
+        <button className="add-to-cart-btn">
+          <ShoppingBag size={18} /> Add to Cart
+        </button>
+      </div>
+      <div className="product-info">
+        <h3 className="product-name">
+          <Link to={`/product/${product._id}`}>{product.name}</Link>
+        </h3>
+        <p className="product-price">${product.price.toFixed(2)}</p>
+      </div>
 
-            <style>{`
+      <style>{`
         .product-card {
           group: relative;
         }
@@ -49,7 +49,7 @@ const ProductCard = ({ product }) => {
         }
         .product-image-container:hover .product-image-hover {
           opacity: 1;
-          transform: scale(1.05);
+          transform: scale(1.1);
         }
         .add-to-cart-btn {
           position: absolute;
@@ -85,8 +85,8 @@ const ProductCard = ({ product }) => {
           font-size: 1.1rem;
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default ProductCard;

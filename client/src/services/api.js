@@ -9,24 +9,26 @@ const api = axios.create({
     },
 });
 
+// Add a request interceptor to include the token
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
 export const getProducts = async () => {
-    try {
-        const response = await api.get('/products');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching products:', error);
-        return [];
-    }
+    const response = await api.get('/products');
+    return response.data;
 };
 
 export const getProductById = async (id) => {
-    try {
-        const response = await api.get(`/products/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error(`Error fetching product ${id}:`, error);
-        return null;
-    }
+    const response = await api.get(`/products/${id}`);
+    return response.data;
 };
 
 export default api;

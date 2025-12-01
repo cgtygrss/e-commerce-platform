@@ -14,6 +14,7 @@ app.use(express.json());
 
 // Routes
 app.use('/products', require('./routes/productRoutes'));
+app.use('/auth', require('./routes/authRoutes'));
 
 app.get('/', (req, res) => {
     res.send('Zetuli API is running');

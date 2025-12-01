@@ -1,85 +1,88 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ProductCard from '../components/ProductCard';
+import ScrollReveal from '../components/ScrollReveal';
 import { getProducts } from '../services/api';
 
 const Shop = () => {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchParams, setSearchParams] = useSearchParams();
-    const categoryFilter = searchParams.get('cat');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryFilter = searchParams.get('cat');
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true);
-            try {
-                const data = await getProducts();
-                if (categoryFilter) {
-                    setProducts(data.filter(p => p.category.toLowerCase() === categoryFilter.toLowerCase()));
-                } else {
-                    setProducts(data);
-                }
-            } catch (error) {
-                console.error('Failed to fetch products', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const data = await getProducts();
+        if (categoryFilter) {
+          setProducts(data.filter(p => p.category.toLowerCase() === categoryFilter.toLowerCase()));
+        } else {
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch products', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        fetchProducts();
-    }, [categoryFilter]);
+    fetchProducts();
+  }, [categoryFilter]);
 
-    const categories = ['Necklaces', 'Rings', 'Earrings', 'Bracelets'];
+  const categories = ['Necklaces', 'Rings', 'Earrings', 'Bracelets'];
 
-    return (
-        <div className="shop-page container section">
-            <div className="shop-header text-center">
-                <h1 className="page-title">Shop Collection</h1>
-                <p className="page-subtitle">Explore our exquisite range of handcrafted jewelry.</p>
-            </div>
+  return (
+    <div className="shop-page container section">
+      <div className="shop-header text-center">
+        <h1 className="page-title">Shop Collection</h1>
+        <p className="page-subtitle">Explore our exquisite range of handcrafted jewelry.</p>
+      </div>
 
-            <div className="filters flex items-center justify-between">
-                <div className="category-filters">
-                    <button
-                        className={`filter-btn ${!categoryFilter ? 'active' : ''}`}
-                        onClick={() => setSearchParams({})}
-                    >
-                        All
-                    </button>
-                    {categories.map(cat => (
-                        <button
-                            key={cat}
-                            className={`filter-btn ${categoryFilter === cat.toLowerCase() ? 'active' : ''}`}
-                            onClick={() => setSearchParams({ cat: cat.toLowerCase() })}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
-                <div className="sort-filter">
-                    <select className="sort-select">
-                        <option value="newest">Newest</option>
-                        <option value="price-asc">Price: Low to High</option>
-                        <option value="price-desc">Price: High to Low</option>
-                    </select>
-                </div>
-            </div>
+      <div className="filters flex items-center justify-between">
+        <div className="category-filters">
+          <button
+            className={`filter-btn ${!categoryFilter ? 'active' : ''}`}
+            onClick={() => setSearchParams({})}
+          >
+            All
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              className={`filter-btn ${categoryFilter === cat.toLowerCase() ? 'active' : ''}`}
+              onClick={() => setSearchParams({ cat: cat.toLowerCase() })}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+        <div className="sort-filter">
+          <select className="sort-select">
+            <option value="newest">Newest</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+          </select>
+        </div>
+      </div>
 
-            {loading ? (
-                <div className="loading text-center">Loading products...</div>
-            ) : (
-                <div className="product-grid">
-                    {products.length > 0 ? (
-                        products.map(product => (
-                            <ProductCard key={product._id} product={product} />
-                        ))
-                    ) : (
-                        <div className="no-products text-center">No products found in this category.</div>
-                    )}
-                </div>
-            )}
+      {loading ? (
+        <div className="loading text-center">Loading products...</div>
+      ) : (
+        <div className="product-grid">
+          {products.length > 0 ? (
+            products.map((product, index) => (
+              <ScrollReveal key={product._id} delay={index * 0.05}>
+                <ProductCard product={product} />
+              </ScrollReveal>
+            ))
+          ) : (
+            <div className="no-products text-center">No products found in this category.</div>
+          )}
+        </div>
+      )}
 
-            <style>{`
+      <style>{`
         .shop-header {
           margin-bottom: 3rem;
         }
@@ -141,8 +144,8 @@ const Shop = () => {
           }
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default Shop;

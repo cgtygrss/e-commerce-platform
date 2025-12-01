@@ -1,49 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, User, Search, Menu, X } from 'lucide-react';
 
 const Navbar = () => {
-    const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useContext(AuthContext);
 
-    return (
-        <nav className="navbar">
-            <div className="container flex justify-between items-center">
-                {/* Logo */}
-                <Link to="/" className="logo">
-                    Zetuli
-                </Link>
+  return (
+    <nav className="navbar">
+      <div className="container flex justify-between items-center">
+        {/* Logo */}
+        <Link to="/" className="logo">
+          Zetuli
+        </Link>
 
-                {/* Desktop Menu */}
-                <div className="desktop-menu">
-                    <Link to="/" className="nav-link">Home</Link>
-                    <Link to="/shop" className="nav-link">Shop</Link>
-                    <Link to="/about" className="nav-link">About</Link>
-                    <Link to="/contact" className="nav-link">Contact</Link>
-                </div>
+        {/* Desktop Menu */}
+        <div className="desktop-menu">
+          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/shop" className="nav-link">Shop</Link>
+          <Link to="/about" className="nav-link">About</Link>
+          <Link to="/contact" className="nav-link">Contact</Link>
+        </div>
 
-                {/* Icons */}
-                <div className="nav-icons flex items-center">
-                    <button className="icon-btn"><Search size={20} /></button>
-                    <Link to="/login" className="icon-btn"><User size={20} /></Link>
-                    <Link to="/cart" className="icon-btn cart-btn">
-                        <ShoppingBag size={20} />
-                        <span className="cart-count">0</span>
-                    </Link>
-                    <button className="mobile-toggle" onClick={() => setIsOpen(!isOpen)}>
-                        {isOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
-                </div>
+        {/* Icons */}
+        <div className="nav-icons flex items-center">
+          <button className="icon-btn"><Search size={20} /></button>
+
+          {user ? (
+            <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <span style={{ fontSize: '0.9rem' }}>{user.name.split(' ')[0]}</span>
+              <button onClick={logout} className="icon-btn" title="Logout">
+                <User size={20} />
+              </button>
             </div>
+          ) : (
+            <Link to="/login" className="icon-btn" title="Login">
+              <User size={20} />
+            </Link>
+          )}
 
-            {/* Mobile Menu */}
-            <div className={`mobile-menu ${isOpen ? 'open' : ''}`}>
-                <Link to="/" onClick={() => setIsOpen(false)}>Home</Link>
-                <Link to="/shop" onClick={() => setIsOpen(false)}>Shop</Link>
-                <Link to="/about" onClick={() => setIsOpen(false)}>About</Link>
-                <Link to="/contact" onClick={() => setIsOpen(false)}>Contact</Link>
-            </div>
+          <Link to="/cart" className="icon-btn cart-btn">
+            <ShoppingBag size={20} />
+            <span className="cart-count">0</span>
+          </Link>
+          <button className="mobile-toggle" onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      </div>
 
-            <style>{`
+      {/* Mobile Menu */}
+      <div className={`mobile-menu ${isOpen ? 'open' : ''}`}>
+        <Link to="/" onClick={() => setIsOpen(false)}>Home</Link>
+        <Link to="/shop" onClick={() => setIsOpen(false)}>Shop</Link>
+        <Link to="/about" onClick={() => setIsOpen(false)}>About</Link>
+        <Link to="/contact" onClick={() => setIsOpen(false)}>Contact</Link>
+        {user ? (
+          <button onClick={() => { logout(); setIsOpen(false); }}>Logout</button>
+        ) : (
+          <Link to="/login" onClick={() => setIsOpen(false)}>Login</Link>
+        )}
+      </div>
+
+      <style>{`
         .navbar {
           padding: 1.5rem 0;
           background-color: var(--color-bg);
@@ -142,8 +162,8 @@ const Navbar = () => {
           }
         }
       `}</style>
-        </nav>
-    );
+    </nav>
+  );
 };
 
 export default Navbar;
