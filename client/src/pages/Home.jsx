@@ -1,37 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Hero from '../components/Hero';
 import ProductCard from '../components/ProductCard';
 import ScrollReveal from '../components/ScrollReveal';
 import { Link } from 'react-router-dom';
+import { getFeaturedProducts } from '../services/api';
 
 const Home = () => {
-  // Dummy data for now
-  const featuredProducts = [
-    {
-      _id: '1',
-      name: 'Ethereal Gold Necklace',
-      price: 129.00,
-      images: ['https://images.unsplash.com/photo-1599643478518-17488fbbcd75?q=80&w=1887&auto=format&fit=crop']
-    },
-    {
-      _id: '2',
-      name: 'Celestial Diamond Ring',
-      price: 299.00,
-      images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=2070&auto=format&fit=crop']
-    },
-    {
-      _id: '3',
-      name: 'Aurora Pearl Earrings',
-      price: 89.00,
-      images: ['https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=1887&auto=format&fit=crop']
-    },
-    {
-      _id: '4',
-      name: 'Golden Hour Bracelet',
-      price: 159.00,
-      images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=2070&auto=format&fit=crop']
-    }
-  ];
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const data = await getFeaturedProducts();
+        setFeaturedProducts(data);
+      } catch (error) {
+        console.error('Failed to fetch featured products', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFeatured();
+  }, []);
 
   return (
     <div className="home-page">
@@ -46,11 +36,17 @@ const Home = () => {
         </ScrollReveal>
 
         <div className="product-grid">
-          {featuredProducts.map((product, index) => (
-            <ScrollReveal key={product._id} delay={index * 0.1}>
-              <ProductCard product={product} />
-            </ScrollReveal>
-          ))}
+          {loading ? (
+            <div className="loading-text">Loading featured products...</div>
+          ) : featuredProducts.length > 0 ? (
+            featuredProducts.map((product, index) => (
+              <ScrollReveal key={product._id} delay={index * 0.1}>
+                <ProductCard product={product} />
+              </ScrollReveal>
+            ))
+          ) : (
+            <div className="no-products">No featured products found</div>
+          )}
         </div>
 
         <ScrollReveal width="100%">

@@ -26,8 +26,18 @@ export const getProducts = async () => {
     return response.data;
 };
 
+export const getFeaturedProducts = async () => {
+    const response = await api.get('/products/featured/list');
+    return response.data;
+};
+
 export const getProductById = async (id) => {
     const response = await api.get(`/products/${id}`);
+    return response.data;
+};
+
+export const createOrder = async (orderData) => {
+    const response = await api.post('/orders', orderData);
     return response.data;
 };
 

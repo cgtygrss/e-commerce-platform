@@ -1,7 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Mail, Phone, MapPin } from 'lucide-react';
 
 const Contact = () => {
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        message: ''
+    });
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const subject = encodeURIComponent('Info - Contact');
+        const body = encodeURIComponent(`From: ${formData.name} (${formData.email})\n\n${formData.message}`);
+        window.location.href = `mailto:info@selene.com?subject=${subject}&body=${body}`;
+    };
+
     return (
         <div className="contact-page container section">
             <div className="contact-hero text-center">
@@ -31,18 +51,39 @@ const Contact = () => {
                     </div>
                 </div>
 
-                <form className="contact-form">
+                <form className="contact-form" onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label>Name</label>
-                        <input type="text" placeholder="Your Name" />
+                        <input 
+                            type="text" 
+                            name="name"
+                            value={formData.name}
+                            onChange={handleChange}
+                            placeholder="Your Name" 
+                            required
+                        />
                     </div>
                     <div className="form-group">
                         <label>Email</label>
-                        <input type="email" placeholder="Your Email" />
+                        <input 
+                            type="email" 
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="Your Email" 
+                            required
+                        />
                     </div>
                     <div className="form-group">
                         <label>Message</label>
-                        <textarea rows="5" placeholder="How can we help?"></textarea>
+                        <textarea 
+                            rows="5" 
+                            name="message"
+                            value={formData.message}
+                            onChange={handleChange}
+                            placeholder="How can we help?"
+                            required
+                        ></textarea>
                     </div>
                     <button type="submit" className="btn btn-primary">Send Message</button>
                 </form>

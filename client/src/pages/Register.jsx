@@ -4,7 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 
 const Register = () => {
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -15,7 +16,7 @@ const Register = () => {
         e.preventDefault();
         setError('');
         try {
-            const res = await api.post('/auth/register', { name, email, password });
+            const res = await api.post('/auth/register', { firstName, lastName, email, password });
             login(res.data.token, res.data.user);
             navigate('/');
         } catch (err) {
@@ -32,15 +33,27 @@ const Register = () => {
                 {error && <div className="error-message">{error}</div>}
 
                 <form onSubmit={handleSubmit} className="auth-form">
-                    <div className="form-group">
-                        <label>Full Name</label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                            placeholder="Enter your full name"
-                        />
+                    <div className="name-row">
+                        <div className="form-group">
+                            <label>First Name</label>
+                            <input
+                                type="text"
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
+                                required
+                                placeholder="First name"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Last Name</label>
+                            <input
+                                type="text"
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                required
+                                placeholder="Last name"
+                            />
+                        </div>
                     </div>
                     <div className="form-group">
                         <label>Email Address</label>
@@ -96,6 +109,11 @@ const Register = () => {
         }
         .auth-form {
           text-align: left;
+        }
+        .name-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
         }
         .form-group {
           margin-bottom: 1.5rem;

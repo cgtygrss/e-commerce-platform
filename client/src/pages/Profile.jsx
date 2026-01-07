@@ -344,9 +344,17 @@ const Profile = () => {
 
     if (loading) {
         return (
-            <div className="profile-loading">
-                <div className="loader"></div>
-                <p>Loading profile...</p>
+            <div className="profile-page">
+                <div className="container">
+                    <div className="profile-loading-container">
+                        <div className="loading-spinner"></div>
+                        <div className="loading-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -711,7 +719,61 @@ const Profile = () => {
                     min-height: 80vh;
                 }
 
-                .profile-loading, .orders-loading {
+                .profile-loading-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    min-height: 60vh;
+                    text-align: center;
+                }
+
+                .loading-spinner {
+                    width: 50px;
+                    height: 50px;
+                    border: 3px solid rgba(212, 175, 55, 0.15);
+                    border-top-color: var(--color-gold);
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin-bottom: 1.5rem;
+                }
+
+                .loading-text {
+                    font-size: 1.1rem;
+                    color: var(--color-text);
+                    margin-bottom: 0.5rem;
+                    font-weight: 500;
+                }
+
+                .loading-dots {
+                    display: flex;
+                    gap: 6px;
+                }
+
+                .loading-dots span {
+                    width: 8px;
+                    height: 8px;
+                    background: var(--color-gold);
+                    border-radius: 50%;
+                    animation: loadingDot 1.4s ease-in-out infinite;
+                }
+
+                .loading-dots span:nth-child(1) { animation-delay: 0s; }
+                .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+                .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+                @keyframes loadingDot {
+                    0%, 80%, 100% {
+                        transform: scale(0.6);
+                        opacity: 0.5;
+                    }
+                    40% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+
+                .orders-loading {
                     display: flex;
                     flex-direction: column;
                     align-items: center;

@@ -119,19 +119,36 @@ const Navbar = () => {
           text-transform: uppercase;
           letter-spacing: 1px;
           color: var(--color-text-muted);
+          position: relative;
+          transition: color 0.3s ease;
+        }
+        .nav-link::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          left: 50%;
+          width: 0;
+          height: 2px;
+          background-color: var(--color-gold);
+          transition: all 0.3s ease;
+          transform: translateX(-50%);
         }
         .nav-link:hover {
           color: var(--color-gold);
+        }
+        .nav-link:hover::after {
+          width: 100%;
         }
         .nav-icons {
           gap: 1.5rem;
         }
         .icon-btn {
           color: var(--color-text);
-          transition: color 0.2s;
+          transition: color 0.2s, transform 0.2s;
         }
         .icon-btn:hover {
           color: var(--color-gold);
+          transform: scale(1.1);
         }
         .cart-btn {
           position: relative;
@@ -150,6 +167,12 @@ const Navbar = () => {
           align-items: center;
           justify-content: center;
           font-weight: bold;
+          animation: cartPop 0.3s ease;
+        }
+        @keyframes cartPop {
+          0% { transform: scale(0); }
+          50% { transform: scale(1.3); }
+          100% { transform: scale(1); }
         }
         .mobile-toggle {
           display: block;

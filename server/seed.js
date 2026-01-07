@@ -126,21 +126,59 @@ const seedDB = async () => {
 
         const users = [
             {
-                name: 'John Doe',
+                name: 'John',
+                surname: 'Doe',
                 email: 'john@example.com',
                 password: hashedPassword,
+                phone: '+1 555-123-4567',
+                address: {
+                    street: '123 Main Street, Apt 4B',
+                    city: 'New York',
+                    postalCode: '10001',
+                    country: 'United States'
+                },
                 isAdmin: false
             },
             {
-                name: 'Jane Smith',
+                name: 'Jane',
+                surname: 'Smith',
                 email: 'jane@example.com',
                 password: hashedPassword,
+                phone: '+1 555-987-6543',
+                address: {
+                    street: '456 Oak Avenue',
+                    city: 'Los Angeles',
+                    postalCode: '90001',
+                    country: 'United States'
+                },
                 isAdmin: false
             },
             {
-                name: 'Admin User',
-                email: 'admin@zetuli.com',
+                name: 'Çağatay',
+                surname: 'Gürses',
+                email: 'cagatay@example.com',
+                password: hashedPassword,
+                phone: '+90 532 123 4567',
+                address: {
+                    street: 'Bağdat Caddesi No: 123',
+                    city: 'Istanbul',
+                    postalCode: '34710',
+                    country: 'Turkey'
+                },
+                isAdmin: false
+            },
+            {
+                name: 'Admin',
+                surname: 'User',
+                email: 'admin@selene.com',
                 password: adminPassword,
+                phone: '+1 555-000-0000',
+                address: {
+                    street: '1 Admin Plaza',
+                    city: 'San Francisco',
+                    postalCode: '94102',
+                    country: 'United States'
+                },
                 isAdmin: true
             }
         ];

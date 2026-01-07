@@ -1,13 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ShoppingBag, Star, Truck, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Star, Truck, ShieldCheck, ArrowLeft, Check } from 'lucide-react';
 import { getProductById } from '../services/api';
+import { CartContext } from '../context/CartContext';
 
 const ProductDetail = () => {
     const { id } = useParams();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [selectedImage, setSelectedImage] = useState(0);
+    const [isAdded, setIsAdded] = useState(false);
+    const { dispatch } = useContext(CartContext);
+
+    const addToCartHandler = () => {
+        if (product) {
+            dispatch({
+                type: 'ADD_TO_CART',
+                payload: {
+                    product: product._id,
+                    name: product.name,
+                    image: product.images[0],
+                    price: product.price,
+                    qty: 1,
+                },
+            });
+            
+            setIsAdded(true);
+            setTimeout(() => setIsAdded(false), 1500);
+        }
+    };
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -71,8 +92,20 @@ const ProductDetail = () => {
                     <p className="product-description">{product.description}</p>
 
                     <div className="actions">
-                        <button className="btn btn-primary btn-lg">
-                            <ShoppingBag size={20} style={{ marginRight: '0.5rem' }} /> Add to Cart
+                        <button 
+                            className={`btn btn-primary btn-lg add-cart-btn ${isAdded ? 'added' : ''}`} 
+                            onClick={addToCartHandler}
+                            disabled={isAdded}
+                        >
+                            {isAdded ? (
+                                <>
+                                    <Check size={20} className="check-icon" style={{ marginRight: '0.5rem' }} /> Added to Cart!
+                                </>
+                            ) : (
+                                <>
+                                    <ShoppingBag size={20} style={{ marginRight: '0.5rem' }} /> Add to Cart
+                                </>
+                            )}
                         </button>
                     </div>
 
@@ -159,6 +192,30 @@ const ProductDetail = () => {
           width: 100%;
           padding: 1rem;
           font-size: 1rem;
+          transition: all 0.3s ease;
+        }
+        .add-cart-btn:active:not(.added) {
+          transform: scale(0.95);
+        }
+        .add-cart-btn.added {
+          background-color: #4CAF50 !important;
+          border-color: #4CAF50 !important;
+        }
+        .add-cart-btn .check-icon {
+          animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+          0% {
+            transform: scale(0);
+            opacity: 0;
+          }
+          50% {
+            transform: scale(1.2);
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
         }
         .features {
           margin-top: 3rem;

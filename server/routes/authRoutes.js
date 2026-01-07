@@ -10,7 +10,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // Register
 router.post('/register', async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { firstName, lastName, email, password } = req.body;
 
         // Check if user exists
         let user = await User.findOne({ email });
@@ -24,7 +24,8 @@ router.post('/register', async (req, res) => {
 
         // Create user
         user = new User({
-            name,
+            name: firstName,
+            surname: lastName,
             email,
             password: hashedPassword
         });
@@ -36,7 +37,18 @@ router.post('/register', async (req, res) => {
             expiresIn: '1h'
         });
 
-        res.json({ token, user: { id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin } });
+        res.json({ 
+            token, 
+            user: { 
+                id: user._id, 
+                name: user.name, 
+                surname: user.surname,
+                email: user.email, 
+                phone: user.phone,
+                address: user.address,
+                isAdmin: user.isAdmin 
+            } 
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
@@ -65,7 +77,18 @@ router.post('/login', async (req, res) => {
             expiresIn: '1h'
         });
 
-        res.json({ token, user: { id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin } });
+        res.json({ 
+            token, 
+            user: { 
+                id: user._id, 
+                name: user.name, 
+                surname: user.surname,
+                email: user.email, 
+                phone: user.phone,
+                address: user.address,
+                isAdmin: user.isAdmin 
+            } 
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
@@ -91,7 +114,8 @@ router.post('/google', async (req, res) => {
             const hashedPassword = await bcrypt.hash(sub + Math.random().toString(), salt);
 
             user = new User({
-                name,
+                name: name.split(' ')[0] || name,
+                surname: name.split(' ').slice(1).join(' ') || '',
                 email,
                 password: hashedPassword
             });
@@ -102,7 +126,18 @@ router.post('/google', async (req, res) => {
             expiresIn: '1h'
         });
 
-        res.json({ token: jwtToken, user: { id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin } });
+        res.json({ 
+            token: jwtToken, 
+            user: { 
+                id: user._id, 
+                name: user.name, 
+                surname: user.surname,
+                email: user.email, 
+                phone: user.phone,
+                address: user.address,
+                isAdmin: user.isAdmin 
+            } 
+        });
     } catch (err) {
         console.error('Google Auth Error:', err);
         res.status(500).json({ message: 'Google authentication failed' });

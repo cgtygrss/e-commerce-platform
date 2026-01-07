@@ -1,8 +1,28 @@
-import React from 'react';
+import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Check } from 'lucide-react';
+import { CartContext } from '../context/CartContext';
 
 const ProductCard = ({ product }) => {
+  const { dispatch } = useContext(CartContext);
+  const [isAdded, setIsAdded] = useState(false);
+
+  const addToCartHandler = () => {
+    dispatch({
+      type: 'ADD_TO_CART',
+      payload: {
+        product: product._id,
+        name: product.name,
+        image: product.images[0],
+        price: product.price,
+        qty: 1,
+      },
+    });
+    
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 1500);
+  };
+
   return (
     <div className="product-card">
       <div className="product-image-container">
@@ -10,8 +30,20 @@ const ProductCard = ({ product }) => {
           <img src={product.images[0]} alt={product.name} className="product-image" />
           <img src={product.images[1] || product.images[0]} alt={product.name} className="product-image-hover" />
         </Link>
-        <button className="add-to-cart-btn">
-          <ShoppingBag size={18} /> Add to Cart
+        <button 
+          className={`add-to-cart-btn ${isAdded ? 'added' : ''}`} 
+          onClick={addToCartHandler}
+          disabled={isAdded}
+        >
+          {isAdded ? (
+            <>
+              <Check size={18} className="check-icon" /> Added!
+            </>
+          ) : (
+            <>
+              <ShoppingBag size={18} /> Add to Cart
+            </>
+          )}
         </button>
       </div>
       <div className="product-info">
@@ -60,7 +92,7 @@ const ProductCard = ({ product }) => {
           background-color: rgba(255, 255, 255, 0.9);
           color: var(--color-text-dark);
           transform: translateY(100%);
-          transition: transform 0.3s ease;
+          transition: transform 0.3s ease, background-color 0.3s ease;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -69,6 +101,31 @@ const ProductCard = ({ product }) => {
           text-transform: uppercase;
           font-size: 0.8rem;
           letter-spacing: 1px;
+          border: none;
+          cursor: pointer;
+        }
+        .add-to-cart-btn:active:not(.added) {
+          transform: translateY(0) scale(0.95);
+        }
+        .add-to-cart-btn.added {
+          background-color: #4CAF50;
+          color: white;
+        }
+        .add-to-cart-btn .check-icon {
+          animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+          0% {
+            transform: scale(0);
+            opacity: 0;
+          }
+          50% {
+            transform: scale(1.2);
+          }
+          100% {
+            transform: scale(1);
+            opacity: 1;
+          }
         }
         .product-image-container:hover .add-to-cart-btn {
           transform: translateY(0);

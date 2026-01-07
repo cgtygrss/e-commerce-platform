@@ -22,6 +22,16 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Get featured products
+router.get('/featured/list', async (req, res) => {
+    try {
+        const products = await Product.find({ isFeatured: true }).limit(8);
+        res.json(products);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // Get product by ID
 router.get('/:id', async (req, res) => {
     try {
