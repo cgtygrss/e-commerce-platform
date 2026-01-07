@@ -64,7 +64,7 @@ const Home = () => {
         <div className="container grid-2-col">
           <ScrollReveal>
             <div className="story-content">
-              <h2>The Zetuli Standard</h2>
+              <h2>The Selené Standard</h2>
               <p>
                 We believe that jewelry is more than just an accessory; it's an expression of individuality.
                 Each piece in our collection is crafted with precision and passion, ensuring that you shine

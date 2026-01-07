@@ -6,7 +6,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
@@ -15,15 +15,16 @@ app.use(express.json());
 // Routes
 app.use('/products', require('./routes/productRoutes'));
 app.use('/auth', require('./routes/authRoutes'));
+app.use('/orders', require('./routes/orderRoutes'));
 
 app.get('/', (req, res) => {
-    res.send('Zetuli API is running');
+    res.send('Selené API is running');
 });
 
 // Database Connection
 const startServer = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/zetuli_jewelry');
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/selene_jewelry');
         console.log('MongoDB Connected');
 
         app.listen(PORT, () => {

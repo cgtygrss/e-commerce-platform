@@ -5,7 +5,7 @@ require('dotenv').config();
 const run = async () => {
     try {
         console.log('Connecting...');
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/zetuli_jewelry');
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/selene_jewelry');
         console.log('Connected.');
 
         console.log('Querying products...');

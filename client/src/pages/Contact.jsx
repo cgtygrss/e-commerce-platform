@@ -19,7 +19,7 @@ const Contact = () => {
 
                     <div className="info-item flex items-center">
                         <Mail className="icon" />
-                        <span>hello@zetuli.com</span>
+                        <span>hello@selene.com</span>
                     </div>
                     <div className="info-item flex items-center">
                         <Phone className="icon" />

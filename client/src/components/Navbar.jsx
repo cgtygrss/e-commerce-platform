@@ -1,18 +1,33 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
+import { CartContext } from '../context/CartContext';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, User, Search, Menu, X } from 'lucide-react';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, logout } = useContext(AuthContext);
+  const { cart } = useContext(CartContext);
+  const { cartItems } = cart;
+  const navigate = useNavigate();
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+       navigate(`/shop?search=${encodeURIComponent(searchQuery)}`);
+       setShowSearch(false);
+       setSearchQuery('');
+    }
+  };
 
   return (
     <nav className="navbar">
       <div className="container flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="logo">
-          Zetuli
+          Selené
         </Link>
 
         {/* Desktop Menu */}
@@ -25,7 +40,21 @@ const Navbar = () => {
 
         {/* Icons */}
         <div className="nav-icons flex items-center">
-          <button className="icon-btn"><Search size={20} /></button>
+             {showSearch ? (
+                <form onSubmit={handleSearch} className="search-form" style={{ display: 'flex', alignItems: 'center' }}>
+                    <input 
+                        type="text" 
+                        placeholder="Search..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        autoFocus
+                        style={{ padding: '0.4rem', border: '1px solid #ddd', marginRight: '0.5rem' }}
+                    />
+                    <button type="button" onClick={() => setShowSearch(false)}><X size={18} /></button>
+                </form>
+            ) : (
+                <button className="icon-btn" onClick={() => setShowSearch(true)}><Search size={20} /></button>
+            )}
 
           {user ? (
             <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -42,7 +71,7 @@ const Navbar = () => {
 
           <Link to="/cart" className="icon-btn cart-btn">
             <ShoppingBag size={20} />
-            <span className="cart-count">0</span>
+            {cartItems.length > 0 && <span className="cart-count">{cartItems.reduce((acc, item) => acc + item.qty, 0)}</span>}
           </Link>
           <button className="mobile-toggle" onClick={() => setIsOpen(!isOpen)}>
             {isOpen ? <X size={24} /> : <Menu size={24} />}
