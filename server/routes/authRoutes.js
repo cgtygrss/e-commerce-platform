@@ -109,4 +109,72 @@ router.post('/google', async (req, res) => {
     }
 });
 
+const { protect } = require('../middleware/authMiddleware');
+
+// @desc    Get user profile
+// @route   GET /api/auth/profile
+// @access  Private
+router.get('/profile', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id).select('-password');
+        if (user) {
+            res.json(user);
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+router.put('/profile', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (user) {
+            user.name = req.body.name || user.name;
+            user.surname = req.body.surname || user.surname;
+            user.email = req.body.email || user.email;
+            user.phone = req.body.phone || user.phone;
+            user.gender = req.body.gender || user.gender;
+            user.birthDate = req.body.birthDate || user.birthDate;
+            
+            if (req.body.address) {
+                user.address = {
+                    street: req.body.address.street || user.address?.street || '',
+                    city: req.body.address.city || user.address?.city || '',
+                    postalCode: req.body.address.postalCode || user.address?.postalCode || '',
+                    country: req.body.address.country || user.address?.country || ''
+                };
+            }
+
+            if (req.body.password) {
+                const salt = await bcrypt.genSalt(10);
+                user.password = await bcrypt.hash(req.body.password, salt);
+            }
+
+            const updatedUser = await user.save();
+
+            res.json({
+                id: updatedUser._id,
+                name: updatedUser.name,
+                surname: updatedUser.surname,
+                email: updatedUser.email,
+                phone: updatedUser.phone,
+                gender: updatedUser.gender,
+                birthDate: updatedUser.birthDate,
+                address: updatedUser.address,
+                isAdmin: updatedUser.isAdmin
+            });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

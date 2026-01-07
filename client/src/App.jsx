@@ -17,6 +17,7 @@ import Register from './pages/Register';
 import Cart from './pages/Cart';
 import Shipping from './pages/Shipping';
 import PlaceOrder from './pages/PlaceOrder';
+import Profile from './pages/Profile';
 
 function App() {
   // Replace with your actual Google Client ID
@@ -38,6 +39,7 @@ function App() {
               <Route path="/cart" element={<Cart />} />
               <Route path="/shipping" element={<Shipping />} />
               <Route path="/placeorder" element={<PlaceOrder />} />
+              <Route path="/profile" element={<Profile />} />
             </Routes>
           </Layout>
         </CartProvider>

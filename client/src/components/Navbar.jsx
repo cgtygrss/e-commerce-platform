@@ -59,9 +59,9 @@ const Navbar = () => {
           {user ? (
             <div className="user-menu" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <span style={{ fontSize: '0.9rem' }}>{user.name.split(' ')[0]}</span>
-              <button onClick={logout} className="icon-btn" title="Logout">
+              <Link to="/profile" className="icon-btn" title="My Profile">
                 <User size={20} />
-              </button>
+              </Link>
             </div>
           ) : (
             <Link to="/login" className="icon-btn" title="Login">
@@ -86,7 +86,10 @@ const Navbar = () => {
         <Link to="/about" onClick={() => setIsOpen(false)}>About</Link>
         <Link to="/contact" onClick={() => setIsOpen(false)}>Contact</Link>
         {user ? (
-          <button onClick={() => { logout(); setIsOpen(false); }}>Logout</button>
+          <>
+            <Link to="/profile" onClick={() => setIsOpen(false)}>My Profile</Link>
+            <button onClick={() => { logout(); setIsOpen(false); }}>Logout</button>
+          </>
         ) : (
           <Link to="/login" onClick={() => setIsOpen(false)}>Login</Link>
         )}

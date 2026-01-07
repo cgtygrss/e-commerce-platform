@@ -16,6 +16,7 @@ app.use(express.json());
 app.use('/products', require('./routes/productRoutes'));
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/orders', require('./routes/orderRoutes'));
+app.use('/countries', require('./routes/countryRoutes'));
 
 app.get('/', (req, res) => {
     res.send('Selené API is running');
