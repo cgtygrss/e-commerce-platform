@@ -17,15 +17,18 @@ app.use('/products', require('./routes/productRoutes'));
 app.use('/auth', require('./routes/authRoutes'));
 app.use('/orders', require('./routes/orderRoutes'));
 app.use('/countries', require('./routes/countryRoutes'));
+app.use('/payment', require('./routes/paymentRoutes'));
+app.use('/returns', require('./routes/returnRoutes'));
+app.use('/shipping', require('./routes/shippingRoutes'));
 
 app.get('/', (req, res) => {
-    res.send('Selené API is running');
+    res.send('Lâl API is running');
 });
 
 // Database Connection
 const startServer = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/selene_jewelry');
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/lal_jewelry');
         console.log('MongoDB Connected');
 
         app.listen(PORT, () => {

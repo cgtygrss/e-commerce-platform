@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useEffect, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { CheckCircle, Package, ArrowRight } from 'lucide-react';
+import { CartContext } from '../context/CartContext';
 
 const OrderSuccess = () => {
     const location = useLocation();
-    const orderId = location.state?.orderId;
+    const { dispatch } = useContext(CartContext);
+    const orderId = location.state?.orderId || location.state?.merchantOid;
+
+    // Clear cart on successful order
+    useEffect(() => {
+        dispatch({ type: 'CLEAR_CART' });
+        localStorage.removeItem('cartItems');
+    }, [dispatch]);
 
     return (
         <div className="order-success-page">

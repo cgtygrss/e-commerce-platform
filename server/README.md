@@ -1,6 +1,6 @@
-# Selené - Backend Server
+# Lâl - Backend Server
 
-Node.js/Express backend API for the Selené luxury jewelry e-commerce platform.
+Node.js/Express backend API for the Lâl luxury jewelry e-commerce platform.
 
 ## 🛠️ Tech Stack
 
@@ -62,7 +62,7 @@ Create a `.env` file in the server directory:
 
 ```env
 # MongoDB Connection
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/selene_jewelry
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/lal_jewelry
 
 # JWT Configuration
 JWT_SECRET=your_super_secret_jwt_key_here
@@ -194,7 +194,7 @@ This will create:
 | `cagatay@example.com` | `123456` | User |
 | `john@example.com` | `123456` | User |
 | `jane@example.com` | `123456` | User |
-| `admin@selene.com` | `admin123` | Admin |
+| `admin@lal.com` | `admin123` | Admin |
 
 ## 🔐 Authentication
 

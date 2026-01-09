@@ -20,10 +20,11 @@ import PlaceOrder from './pages/PlaceOrder';
 import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
 import Profile from './pages/Profile';
+import ReturnRequest from './pages/ReturnRequest';
+import OrderTracking from './pages/OrderTracking';
 
 function App() {
-  // Replace with your actual Google Client ID
-  const googleClientId = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   return (
     <GoogleOAuthProvider clientId={googleClientId}>
@@ -44,6 +45,8 @@ function App() {
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order-success" element={<OrderSuccess />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/return-request/:orderId" element={<ReturnRequest />} />
+              <Route path="/order/:orderId/tracking" element={<OrderTracking />} />
             </Routes>
           </Layout>
         </CartProvider>

@@ -1,20 +1,27 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { CartContext } from '../context/CartContext';
 import { AuthContext } from '../context/AuthContext';
-import { MapPin, CreditCard, Check, ChevronRight, ShoppingBag, Truck, Shield } from 'lucide-react';
+import { MapPin, CreditCard, Check, ChevronRight, ShoppingBag, Truck, Shield, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 
 const Checkout = () => {
     const { cart, dispatch } = useContext(CartContext);
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { cartItems, shippingAddress } = cart;
 
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [profileLoading, setProfileLoading] = useState(true);
     const [error, setError] = useState(null);
+    
+    // PayTR state
+    const [paytrToken, setPaytrToken] = useState(null);
+    const [paytrLoading, setPaytrLoading] = useState(false);
+    const [paytrError, setPaytrError] = useState(null);
+    const [merchantOid, setMerchantOid] = useState(null);
 
     // Shipping form state
     const [shippingForm, setShippingForm] = useState({
@@ -28,13 +35,15 @@ const Checkout = () => {
     });
 
     // Payment form state
-    const [paymentMethod, setPaymentMethod] = useState('credit-card');
-    const [cardDetails, setCardDetails] = useState({
-        cardNumber: '',
-        cardName: '',
-        expiry: '',
-        cvv: ''
-    });
+    const [paymentMethod, setPaymentMethod] = useState('paytr');
+
+    // Check for payment failure from URL
+    useEffect(() => {
+        if (searchParams.get('payment') === 'failed') {
+            setError('Ödeme işlemi başarısız oldu. Lütfen tekrar deneyin.');
+            setCurrentStep(2);
+        }
+    }, [searchParams]);
 
     // Fetch user profile data to pre-fill shipping address
     useEffect(() => {
@@ -59,12 +68,6 @@ const Checkout = () => {
                     country: userData.address?.country || shippingAddress.country || '',
                     phone: userData.phone || ''
                 });
-                
-                // Pre-fill card name
-                setCardDetails(prev => ({
-                    ...prev,
-                    cardName: `${userData.name || ''} ${userData.surname || ''}`.trim()
-                }));
             } catch (error) {
                 console.error('Failed to fetch user profile', error);
                 // Fallback to context data if API fails
@@ -104,47 +107,17 @@ const Checkout = () => {
         });
     };
 
-    const handleCardChange = (e) => {
-        let value = e.target.value;
-        const name = e.target.name;
-
-        // Format card number with spaces
-        if (name === 'cardNumber') {
-            value = value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
-            value = value.substring(0, 19);
-        }
-        // Format expiry as MM/YY
-        if (name === 'expiry') {
-            value = value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2, 4);
-            }
-        }
-        // Limit CVV
-        if (name === 'cvv') {
-            value = value.substring(0, 4);
-        }
-
-        setCardDetails({
-            ...cardDetails,
-            [name]: value
-        });
-    };
-
     const validateShipping = () => {
         const { firstName, lastName, address, city, postalCode, country } = shippingForm;
         return firstName && lastName && address && city && postalCode && country;
     };
 
     const validatePayment = () => {
-        if (paymentMethod === 'credit-card') {
-            const { cardNumber, cardName, expiry, cvv } = cardDetails;
-            return cardNumber.length >= 19 && cardName && expiry.length === 5 && cvv.length >= 3;
-        }
-        return true;
+        // PayTR handles payment validation through iframe
+        return paymentMethod === 'credit-card' || paymentMethod === 'paytr';
     };
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (currentStep === 1 && validateShipping()) {
             dispatch({
                 type: 'SAVE_SHIPPING_ADDRESS',
@@ -157,17 +130,31 @@ const Checkout = () => {
             });
             setCurrentStep(2);
         } else if (currentStep === 2 && validatePayment()) {
-            setCurrentStep(3);
+            // Initialize PayTR payment
+            await initializePayTR();
         }
     };
 
-    const handlePlaceOrder = async () => {
-        setLoading(true);
-        setError(null);
+    // Initialize PayTR iframe
+    const initializePayTR = async () => {
+        setPaytrLoading(true);
+        setPaytrError(null);
         
         try {
-            const { data } = await api.post('/orders', {
-                orderItems: cartItems,
+            const userBasket = cartItems.map(item => ({
+                name: item.name,
+                price: item.price,
+                qty: item.qty
+            }));
+
+            const { data } = await api.post('/payment/create-payment', {
+                orderItems: cartItems.map(item => ({
+                    name: item.name,
+                    qty: item.qty,
+                    image: item.image,
+                    price: item.price,
+                    product: item.product
+                })),
                 shippingAddress: {
                     firstName: shippingForm.firstName,
                     lastName: shippingForm.lastName,
@@ -177,22 +164,55 @@ const Checkout = () => {
                     country: shippingForm.country,
                     phone: shippingForm.phone
                 },
-                paymentMethod: paymentMethod === 'credit-card' ? 'Credit Card' : 'PayPal',
-                itemsPrice: itemsPrice.toFixed(2),
-                shippingPrice: shippingPrice.toFixed(2),
-                taxPrice: 0,
-                totalPrice: totalPrice
+                totalPrice: parseFloat(totalPrice),
+                userBasket
             });
 
-            dispatch({ type: 'CLEAR_CART' });
-            localStorage.removeItem('cartItems');
-            
-            navigate('/order-success', { state: { orderId: data._id } });
+            if (data.success) {
+                setPaytrToken(data.token);
+                setMerchantOid(data.merchant_oid);
+                
+                // Create order with pending status
+                await api.post('/payment/create-order', {
+                    orderItems: cartItems.map(item => ({
+                        name: item.name,
+                        qty: item.qty,
+                        image: item.image,
+                        price: item.price,
+                        product: item.product
+                    })),
+                    shippingAddress: {
+                        firstName: shippingForm.firstName,
+                        lastName: shippingForm.lastName,
+                        address: shippingForm.address,
+                        city: shippingForm.city,
+                        postalCode: shippingForm.postalCode,
+                        country: shippingForm.country,
+                        phone: shippingForm.phone
+                    },
+                    paymentMethod: 'PayTR',
+                    totalPrice: parseFloat(totalPrice),
+                    merchant_oid: data.merchant_oid
+                });
+                
+                setCurrentStep(3);
+            } else {
+                setPaytrError(data.message || 'Ödeme başlatılamadı. Lütfen tekrar deneyin.');
+            }
         } catch (err) {
-            setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+            console.error('PayTR Error:', err);
+            setPaytrError(err.response?.data?.message || 'Ödeme başlatılırken bir hata oluştu.');
         } finally {
-            setLoading(false);
+            setPaytrLoading(false);
         }
+    };
+
+    const handlePlaceOrder = async () => {
+        // With PayTR, the order is already created
+        // Clear cart and redirect
+        dispatch({ type: 'CLEAR_CART' });
+        localStorage.removeItem('cartItems');
+        navigate('/order-success', { state: { merchantOid } });
     };
 
     const steps = [
@@ -333,82 +353,26 @@ const Checkout = () => {
                                 <h2><CreditCard size={24} /> Payment Method</h2>
                                 
                                 <div className="payment-methods">
-                                    <label className={`payment-option ${paymentMethod === 'credit-card' ? 'selected' : ''}`}>
+                                    <label className={`payment-option ${paymentMethod === 'paytr' ? 'selected' : ''}`}>
                                         <input
                                             type="radio"
                                             name="paymentMethod"
-                                            value="credit-card"
-                                            checked={paymentMethod === 'credit-card'}
+                                            value="paytr"
+                                            checked={paymentMethod === 'paytr'}
                                             onChange={(e) => setPaymentMethod(e.target.value)}
                                         />
                                         <CreditCard size={24} />
-                                        <span>Credit / Debit Card</span>
-                                    </label>
-                                    <label className={`payment-option ${paymentMethod === 'paypal' ? 'selected' : ''}`}>
-                                        <input
-                                            type="radio"
-                                            name="paymentMethod"
-                                            value="paypal"
-                                            checked={paymentMethod === 'paypal'}
-                                            onChange={(e) => setPaymentMethod(e.target.value)}
-                                        />
-                                        <span className="paypal-text">PayPal</span>
+                                        <span>Credit / Debit Card (PayTR)</span>
                                     </label>
                                 </div>
 
-                                {paymentMethod === 'credit-card' && (
-                                    <div className="card-form">
-                                        <div className="form-group full-width">
-                                            <label>Card Number</label>
-                                            <input
-                                                type="text"
-                                                name="cardNumber"
-                                                value={cardDetails.cardNumber}
-                                                onChange={handleCardChange}
-                                                placeholder="1234 5678 9012 3456"
-                                                maxLength={19}
-                                            />
-                                        </div>
-                                        <div className="form-group full-width">
-                                            <label>Cardholder Name</label>
-                                            <input
-                                                type="text"
-                                                name="cardName"
-                                                value={cardDetails.cardName}
-                                                onChange={handleCardChange}
-                                                placeholder="JOHN DOE"
-                                                style={{ textTransform: 'uppercase' }}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Expiry Date</label>
-                                            <input
-                                                type="text"
-                                                name="expiry"
-                                                value={cardDetails.expiry}
-                                                onChange={handleCardChange}
-                                                placeholder="MM/YY"
-                                                maxLength={5}
-                                            />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>CVV</label>
-                                            <input
-                                                type="password"
-                                                name="cvv"
-                                                value={cardDetails.cvv}
-                                                onChange={handleCardChange}
-                                                placeholder="•••"
-                                                maxLength={4}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="paytr-info">
+                                    <Shield size={20} />
+                                    <p>You will be redirected to PayTR's secure payment page to complete your purchase. PayTR supports all major credit and debit cards.</p>
+                                </div>
 
-                                {paymentMethod === 'paypal' && (
-                                    <div className="paypal-info">
-                                        <p>You will be redirected to PayPal to complete your payment after reviewing your order.</p>
-                                    </div>
+                                {paytrError && (
+                                    <div className="error-message">{paytrError}</div>
                                 )}
 
                                 <div className="step-buttons">
@@ -418,18 +382,18 @@ const Checkout = () => {
                                     <button 
                                         className="btn btn-primary btn-continue"
                                         onClick={handleContinue}
-                                        disabled={!validatePayment()}
+                                        disabled={paytrLoading}
                                     >
-                                        Review Order <ChevronRight size={20} />
+                                        {paytrLoading ? 'Loading Payment...' : 'Continue to Review'} <ChevronRight size={20} />
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* Step 3: Review */}
+                        {/* Step 3: Review & Payment */}
                         {currentStep === 3 && (
                             <div className="form-step">
-                                <h2><Check size={24} /> Review Your Order</h2>
+                                <h2><Check size={24} /> Complete Your Order</h2>
 
                                 <div className="review-section">
                                     <h3>Shipping Address</h3>
@@ -439,12 +403,6 @@ const Checkout = () => {
                                     <p>{shippingForm.country}</p>
                                     {shippingForm.phone && <p>Phone: {shippingForm.phone}</p>}
                                     <button className="edit-btn" onClick={() => setCurrentStep(1)}>Edit</button>
-                                </div>
-
-                                <div className="review-section">
-                                    <h3>Payment Method</h3>
-                                    <p>{paymentMethod === 'credit-card' ? `Card ending in ${cardDetails.cardNumber.slice(-4)}` : 'PayPal'}</p>
-                                    <button className="edit-btn" onClick={() => setCurrentStep(2)}>Edit</button>
                                 </div>
 
                                 <div className="review-section">
@@ -463,18 +421,34 @@ const Checkout = () => {
                                     </div>
                                 </div>
 
+                                {/* PayTR Payment Section */}
+                                {paytrToken ? (
+                                    <div className="paytr-payment-section">
+                                        <h3><CreditCard size={20} /> Enter Payment Details</h3>
+                                        <div className="paytr-iframe-container">
+                                            <iframe 
+                                                src={`https://www.paytr.com/odeme/guvenli/${paytrToken}`}
+                                                id="paytriframe"
+                                                frameBorder="0"
+                                                scrolling="yes"
+                                                style={{ width: '100%', height: '600px', border: 'none' }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="paytr-loading">
+                                        <p>Loading payment form...</p>
+                                    </div>
+                                )}
+
                                 {error && <div className="error-message">{error}</div>}
 
                                 <div className="step-buttons">
-                                    <button className="btn btn-outline" onClick={() => setCurrentStep(2)}>
+                                    <button className="btn btn-outline" onClick={() => {
+                                        setPaytrToken('');
+                                        setCurrentStep(2);
+                                    }}>
                                         Back
-                                    </button>
-                                    <button 
-                                        className="btn btn-primary btn-place-order"
-                                        onClick={handlePlaceOrder}
-                                        disabled={loading}
-                                    >
-                                        {loading ? 'Processing...' : `Place Order • $${totalPrice}`}
                                     </button>
                                 </div>
                             </div>
@@ -990,6 +964,75 @@ const Checkout = () => {
 
                 .feature svg {
                     color: #4CAF50;
+                }
+
+                /* PayTR Styles */
+                .paytr-info {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 1rem;
+                    padding: 1.5rem;
+                    background: linear-gradient(135deg, #f8f9fa 0%, #fff 100%);
+                    border: 1px solid rgba(0,0,0,0.08);
+                    border-radius: 12px;
+                    margin: 1.5rem 0;
+                }
+
+                .paytr-info svg {
+                    color: #4CAF50;
+                    flex-shrink: 0;
+                    margin-top: 2px;
+                }
+
+                .paytr-info p {
+                    margin: 0;
+                    font-size: 0.95rem;
+                    color: var(--color-text-muted);
+                    line-height: 1.6;
+                }
+
+                .paytr-payment-section {
+                    margin-top: 2rem;
+                    padding: 1.5rem;
+                    background: #fff;
+                    border: 1px solid rgba(0,0,0,0.1);
+                    border-radius: 12px;
+                }
+
+                .paytr-payment-section h3 {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    margin: 0 0 1.5rem 0;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    color: var(--color-text);
+                }
+
+                .paytr-iframe-container {
+                    border-radius: 8px;
+                    overflow: hidden;
+                    background: #fafafa;
+                    min-height: 600px;
+                }
+
+                .paytr-iframe-container iframe {
+                    display: block;
+                }
+
+                .paytr-loading {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 3rem;
+                    background: #f8f9fa;
+                    border-radius: 12px;
+                    margin-top: 2rem;
+                }
+
+                .paytr-loading p {
+                    color: var(--color-text-muted);
+                    font-size: 1rem;
                 }
 
                 @media (max-width: 968px) {

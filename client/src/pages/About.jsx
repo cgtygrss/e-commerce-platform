@@ -12,9 +12,9 @@ const About = () => {
       <div className="about-content grid-2-col">
         <ScrollReveal>
           <div className="about-text">
-            <h2>The Selené Philosophy</h2>
+            <h2>The Lâl Philosophy</h2>
             <p>
-              At Selené, we believe that jewelry is an art form—a way to express your unique identity and style.
+              At Lâl, we believe that jewelry is an art form—a way to express your unique identity and style.
               Our journey began with a simple vision: to create pieces that are not only beautiful but also meaningful.
             </p>
             <p>
@@ -23,7 +23,7 @@ const About = () => {
             </p>
             <p>
               Whether you're looking for a statement piece for a special occasion or a subtle accent for everyday wear,
-              Selené offers a curated selection that transcends trends and stands the test of time.
+              Lâl offers a curated selection that transcends trends and stands the test of time.
             </p>
           </div>
         </ScrollReveal>

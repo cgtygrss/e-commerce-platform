@@ -6,7 +6,7 @@ const Hero = () => {
     <section className="hero">
       <div className="hero-content container">
         <h1 className="hero-title">Elegance in Every Detail</h1>
-        <p className="hero-subtitle">Discover the Selené Collection. Timeless jewelry for the modern era.</p>
+        <p className="hero-subtitle">Discover the Lâl Collection. Timeless jewelry for the modern era.</p>
         <div className="hero-buttons">
           <Link to="/shop" className="btn btn-primary hero-btn">Shop Collection</Link>
           <Link to="/about" className="btn btn-outline hero-btn">Our Story</Link>

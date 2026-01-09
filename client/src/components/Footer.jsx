@@ -9,7 +9,7 @@ const Footer = () => {
                 <div className="footer-grid">
                     {/* Brand */}
                     <div className="footer-col">
-                        <h3 className="footer-logo">Selené</h3>
+                        <h3 className="footer-logo">Lâl</h3>
                         <p className="footer-desc">
                             Crafting timeless elegance for the modern soul.
                             Discover our exclusive collection of premium jewelry.
@@ -50,7 +50,7 @@ const Footer = () => {
                 </div>
 
                 <div className="footer-bottom">
-                    <p>&copy; {new Date().getFullYear()} Selené Jewelry. All rights reserved.</p>
+                    <p>&copy; {new Date().getFullYear()} Lâl Jewelry. All rights reserved.</p>
                 </div>
             </div>
 

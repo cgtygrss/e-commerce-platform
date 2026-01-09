@@ -212,4 +212,93 @@ router.put('/profile', protect, async (req, res) => {
     }
 });
 
+// Store verification codes temporarily (in production, use Redis)
+const verificationCodes = new Map();
+
+const { generateVerificationCode, sendVerificationCode, sendPasswordChangedConfirmation } = require('../utils/emailService');
+
+// @desc    Request password change verification code
+// @route   POST /api/auth/request-password-change
+// @access  Private
+router.post('/request-password-change', protect, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Generate verification code
+        const code = generateVerificationCode();
+        
+        // Store code with expiration (10 minutes)
+        verificationCodes.set(user._id.toString(), {
+            code,
+            expiresAt: Date.now() + 10 * 60 * 1000 // 10 minutes
+        });
+
+        // Send email
+        const result = await sendVerificationCode(user.email, code, user.name);
+        
+        if (result.success) {
+            res.json({ message: 'Verification code sent to your email' });
+        } else {
+            res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+        }
+    } catch (error) {
+        console.error('Request password change error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @desc    Verify code and change password
+// @route   POST /api/auth/verify-password-change
+// @access  Private
+router.post('/verify-password-change', protect, async (req, res) => {
+    try {
+        const { code, newPassword } = req.body;
+        const userId = req.user._id.toString();
+
+        // Check if code exists
+        const storedData = verificationCodes.get(userId);
+        
+        if (!storedData) {
+            return res.status(400).json({ message: 'No verification code found. Please request a new one.' });
+        }
+
+        // Check if code expired
+        if (Date.now() > storedData.expiresAt) {
+            verificationCodes.delete(userId);
+            return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+        }
+
+        // Verify code
+        if (storedData.code !== code) {
+            return res.status(400).json({ message: 'Invalid verification code' });
+        }
+
+        // Update password
+        const user = await User.findById(req.user._id);
+        
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        // Clear verification code
+        verificationCodes.delete(userId);
+
+        // Send confirmation email
+        await sendPasswordChangedConfirmation(user.email, user.name);
+
+        res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+        console.error('Verify password change error:', error);
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;

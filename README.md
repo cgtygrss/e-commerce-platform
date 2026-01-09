@@ -1,8 +1,8 @@
-# ✨ Selené - Luxury Jewelry E-Commerce
+# ✨ Lâl - Luxury Jewelry E-Commerce
 
 <div align="center">
 
-![Selené Logo](https://img.shields.io/badge/Selené-Luxury%20Jewelry-D4AF37?style=for-the-badge&logo=sparkles&logoColor=white)
+![Lâl Logo](https://img.shields.io/badge/Lâl-Luxury%20Jewelry-D4AF37?style=for-the-badge&logo=sparkles&logoColor=white)
 
 A modern, full-stack e-commerce platform for luxury jewelry, built with the MERN stack.
 
@@ -152,7 +152,7 @@ bijuteri-website/
 | `cagatay@example.com` | `123456` | User |
 | `john@example.com` | `123456` | User |
 | `jane@example.com` | `123456` | User |
-| `admin@selene.com` | `admin123` | Admin |
+| `admin@lal.com` | `admin123` | Admin |
 
 ---
 

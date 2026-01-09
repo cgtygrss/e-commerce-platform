@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -38,6 +38,17 @@ export const getProductById = async (id) => {
 
 export const createOrder = async (orderData) => {
     const response = await api.post('/orders', orderData);
+    return response.data;
+};
+
+// Shipping / Tracking APIs
+export const getOrderTracking = async (orderId) => {
+    const response = await api.get(`/shipping/track/${orderId}`);
+    return response.data;
+};
+
+export const getOrderById = async (orderId) => {
+    const response = await api.get(`/orders/${orderId}`);
     return response.data;
 };
 

@@ -32,6 +32,9 @@ const Shop = () => {
   
   const categoryFilter = searchParams.get('cat');
   const searchQuery = searchParams.get('search');
+  const materialParam = searchParams.get('material');
+  const minPriceParam = searchParams.get('minPrice');
+  const maxPriceParam = searchParams.get('maxPrice');
 
   // Fetch all products once
   useEffect(() => {
@@ -65,9 +68,33 @@ const Shop = () => {
   // Initialize price range when products load
   useEffect(() => {
     if (products.length > 0) {
-      setPriceRange([minPrice, maxPrice]);
+      // Apply URL params if present, otherwise use full range
+      const urlMinPrice = minPriceParam ? parseFloat(minPriceParam) : minPrice;
+      const urlMaxPrice = maxPriceParam ? parseFloat(maxPriceParam) : maxPrice;
+      setPriceRange([urlMinPrice, urlMaxPrice]);
     }
-  }, [minPrice, maxPrice, products.length]);
+  }, [minPrice, maxPrice, products.length, minPriceParam, maxPriceParam]);
+
+  // Reset and apply filters when URL params change (from navbar selection)
+  useEffect(() => {
+    if (products.length > 0) {
+      // Reset all filters first
+      setSelectedColors([]);
+      setInStockOnly(false);
+      
+      // Apply material from URL if present
+      if (materialParam) {
+        setSelectedMaterials([materialParam]);
+      } else {
+        setSelectedMaterials([]);
+      }
+      
+      // Apply price range from URL if present
+      const urlMinPrice = minPriceParam ? parseFloat(minPriceParam) : minPrice;
+      const urlMaxPrice = maxPriceParam ? parseFloat(maxPriceParam) : maxPrice;
+      setPriceRange([urlMinPrice, urlMaxPrice]);
+    }
+  }, [categoryFilter, materialParam, minPriceParam, maxPriceParam, products.length, minPrice, maxPrice]);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -353,6 +380,9 @@ const Shop = () => {
       )}
 
       <style>{`
+        .shop-page {
+          padding-top: 3rem;
+        }
         .shop-header {
           margin-bottom: 3rem;
         }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { User, Package, Settings, LogOut, ChevronRight, Eye, EyeOff, Save, X, ChevronDown, Calendar } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { User, Package, Settings, LogOut, ChevronRight, Eye, EyeOff, Save, X, ChevronDown, Calendar, Mail, Shield } from 'lucide-react';
 import api from '../services/api';
 
 const Profile = () => {
@@ -15,6 +15,12 @@ const Profile = () => {
     const [message, setMessage] = useState({ type: '', text: '' });
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Password change verification state
+    const [passwordChangeStep, setPasswordChangeStep] = useState(0); // 0: idle, 1: code sent, 2: verified
+    const [verificationCode, setVerificationCode] = useState('');
+    const [sendingCode, setSendingCode] = useState(false);
+    const [verifyingCode, setVerifyingCode] = useState(false);
 
     // Countries and cities state
     const [countries, setCountries] = useState([]);
@@ -263,17 +269,77 @@ const Profile = () => {
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setMessage({ type: '', text: '' });
+    // Request verification code for password change
+    const handleRequestPasswordCode = async () => {
+        if (!formData.password || !formData.confirmPassword) {
+            setMessage({ type: 'error', text: 'Please enter your new password first' });
+            return;
+        }
 
-        if (formData.password && formData.password !== formData.confirmPassword) {
+        if (formData.password !== formData.confirmPassword) {
             setMessage({ type: 'error', text: 'Passwords do not match' });
             return;
         }
 
-        if (formData.password && formData.password.length < 6) {
+        if (formData.password.length < 6) {
             setMessage({ type: 'error', text: 'Password must be at least 6 characters' });
+            return;
+        }
+
+        setSendingCode(true);
+        setMessage({ type: '', text: '' });
+
+        try {
+            await api.post('/auth/request-password-change');
+            setPasswordChangeStep(1);
+            setMessage({ type: 'success', text: 'Verification code sent to your email!' });
+        } catch (error) {
+            setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to send verification code' });
+        }
+        setSendingCode(false);
+    };
+
+    // Verify code and change password
+    const handleVerifyAndChangePassword = async () => {
+        if (!verificationCode || verificationCode.length !== 6) {
+            setMessage({ type: 'error', text: 'Please enter the 6-digit verification code' });
+            return;
+        }
+
+        setVerifyingCode(true);
+        setMessage({ type: '', text: '' });
+
+        try {
+            await api.post('/auth/verify-password-change', {
+                code: verificationCode,
+                newPassword: formData.password
+            });
+            
+            setMessage({ type: 'success', text: 'Password changed successfully!' });
+            setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+            setPasswordChangeStep(0);
+            setVerificationCode('');
+        } catch (error) {
+            setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to verify code' });
+        }
+        setVerifyingCode(false);
+    };
+
+    // Cancel password change
+    const handleCancelPasswordChange = () => {
+        setPasswordChangeStep(0);
+        setVerificationCode('');
+        setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+        setMessage({ type: '', text: '' });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setMessage({ type: '', text: '' });
+
+        // Don't allow password in regular form submit - must use verification flow
+        if (formData.password) {
+            setMessage({ type: 'error', text: 'Please use the "Change Password" button to update your password' });
             return;
         }
 
@@ -294,10 +360,6 @@ const Profile = () => {
                 address: formData.address
             };
 
-            if (formData.password) {
-                updateData.password = formData.password;
-            }
-
             const response = await api.put('/auth/profile', updateData);
             
             // Update local storage user data
@@ -305,7 +367,6 @@ const Profile = () => {
             login(token, response.data);
 
             setMessage({ type: 'success', text: 'Profile updated successfully!' });
-            setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
         } catch (error) {
             console.error('Error updating profile:', error);
             setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to update profile' });
@@ -326,16 +387,36 @@ const Profile = () => {
         });
     };
 
-    const getStatusColor = (isPaid, isDelivered) => {
-        if (isDelivered) return '#10b981';
-        if (isPaid) return '#f59e0b';
-        return '#ef4444';
+    const getStatusInfo = (order) => {
+        // Check new status field first, fallback to isPaid/isDelivered
+        if (order.status) {
+            const statusMap = {
+                pending: { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.25)', text: 'Ödeme Bekleniyor', icon: '⏳' },
+                processing: { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.25)', text: 'Hazırlanıyor', icon: '📦' },
+                shipped: { color: '#a78bfa', bg: 'rgba(167, 139, 250, 0.25)', text: 'Kargoya Verildi', icon: '🚚' },
+                delivered: { color: '#34d399', bg: 'rgba(52, 211, 153, 0.25)', text: 'Teslim Edildi', icon: '✅' },
+                return_requested: { color: '#fb923c', bg: 'rgba(251, 146, 60, 0.25)', text: 'İade Talebi', icon: '↩️' },
+                return_approved: { color: '#22d3ee', bg: 'rgba(34, 211, 238, 0.25)', text: 'İade Onaylandı', icon: '✓' },
+                refunded: { color: '#4ade80', bg: 'rgba(74, 222, 128, 0.25)', text: 'İade Edildi', icon: '💰' },
+                cancelled: { color: '#f87171', bg: 'rgba(248, 113, 113, 0.25)', text: 'İptal Edildi', icon: '✕' }
+            };
+            return statusMap[order.status] || statusMap.pending;
+        }
+        
+        // Fallback for orders without status field
+        if (order.isDelivered) return { color: '#34d399', bg: 'rgba(52, 211, 153, 0.25)', text: 'Teslim Edildi', icon: '✅' };
+        if (order.isPaid) return { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.25)', text: 'Hazırlanıyor', icon: '📦' };
+        return { color: '#fbbf24', bg: 'rgba(251, 191, 36, 0.25)', text: 'Ödeme Bekleniyor', icon: '⏳' };
     };
 
-    const getStatusText = (isPaid, isDelivered) => {
-        if (isDelivered) return 'Delivered';
-        if (isPaid) return 'Processing';
-        return 'Pending Payment';
+    const canRequestReturn = (order) => {
+        if (!order.isPaid) return false;
+        if (order.status === 'return_requested' || order.status === 'return_approved' || order.status === 'refunded' || order.status === 'cancelled') return false;
+        
+        const returnWindowDays = 14;
+        const referenceDate = order.deliveredAt || order.paidAt || order.createdAt;
+        const daysSinceOrder = Math.floor((Date.now() - new Date(referenceDate)) / (1000 * 60 * 60 * 24));
+        return daysSinceOrder <= returnWindowDays;
     };
 
     if (!user) {
@@ -586,62 +667,118 @@ const Profile = () => {
 
                         {activeTab === 'orders' && (
                             <div className="profile-section">
-                                <h2>My Orders</h2>
-                                <p className="section-desc">View and track your order history</p>
+                                <h2>Siparişlerim</h2>
+                                <p className="section-desc">Siparişlerinizi görüntüleyin ve takip edin</p>
 
                                 {ordersLoading ? (
                                     <div className="orders-loading">
                                         <div className="loader"></div>
-                                        <p>Loading orders...</p>
+                                        <p>Siparişler yükleniyor...</p>
                                     </div>
                                 ) : orders.length === 0 ? (
                                     <div className="no-orders">
                                         <Package size={64} />
-                                        <h3>No orders yet</h3>
-                                        <p>When you place orders, they will appear here</p>
+                                        <h3>Henüz sipariş yok</h3>
+                                        <p>Sipariş verdiğinizde burada görünecektir</p>
                                         <button onClick={() => navigate('/shop')} className="btn-shop">
-                                            Start Shopping
+                                            Alışverişe Başla
                                         </button>
                                     </div>
                                 ) : (
                                     <div className="orders-list">
-                                        {orders.map(order => (
-                                            <div key={order._id} className="order-card">
-                                                <div className="order-header">
-                                                    <div className="order-info">
-                                                        <span className="order-id">Order #{order._id.slice(-8).toUpperCase()}</span>
-                                                        <span className="order-date">{formatDate(order.createdAt)}</span>
-                                                    </div>
-                                                    <span 
-                                                        className="order-status"
-                                                        style={{ backgroundColor: getStatusColor(order.isPaid, order.isDelivered) }}
-                                                    >
-                                                        {getStatusText(order.isPaid, order.isDelivered)}
-                                                    </span>
-                                                </div>
-                                                <div className="order-items">
-                                                    {order.orderItems.map((item, idx) => (
-                                                        <div key={idx} className="order-item">
-                                                            <img src={item.image} alt={item.name} />
-                                                            <div className="item-details">
-                                                                <span className="item-name">{item.name}</span>
-                                                                <span className="item-qty">Qty: {item.qty}</span>
-                                                            </div>
-                                                            <span className="item-price">${item.price.toFixed(2)}</span>
+                                        {orders.map(order => {
+                                            const statusInfo = getStatusInfo(order);
+                                            return (
+                                                <div key={order._id} className="order-card">
+                                                    {/* Order Header */}
+                                                    <div className="order-header">
+                                                        <div className="order-meta">
+                                                            <span className="order-id">#{order._id.slice(-8).toUpperCase()}</span>
+                                                            <span className="order-date">{formatDate(order.createdAt)}</span>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                                <div className="order-footer">
-                                                    <div className="shipping-info">
-                                                        <strong>Shipping to:</strong> {order.shippingAddress.city}, {order.shippingAddress.country}
+                                                        <div 
+                                                            className="order-status-badge"
+                                                            style={{ 
+                                                                color: statusInfo.color, 
+                                                                backgroundColor: statusInfo.bg,
+                                                                borderColor: statusInfo.color
+                                                            }}
+                                                        >
+                                                            <span className="status-icon">{statusInfo.icon}</span>
+                                                            {statusInfo.text}
+                                                        </div>
                                                     </div>
-                                                    <div className="order-total">
-                                                        <span>Total:</span>
-                                                        <strong>${order.totalPrice.toFixed(2)}</strong>
+
+                                                    {/* Order Progress */}
+                                                    <div className="order-progress">
+                                                        <div className={`progress-step ${order.isPaid ? 'completed' : 'active'}`}>
+                                                            <div className="step-dot"></div>
+                                                            <span>Sipariş Alındı</span>
+                                                        </div>
+                                                        <div className="progress-line" style={{ background: order.isPaid ? statusInfo.color : '#e5e7eb' }}></div>
+                                                        <div className={`progress-step ${order.isPaid ? (order.status === 'shipped' || order.isDelivered ? 'completed' : 'active') : ''}`}>
+                                                            <div className="step-dot"></div>
+                                                            <span>Kargoya Verildi</span>
+                                                        </div>
+                                                        <div className="progress-line" style={{ background: order.isDelivered ? statusInfo.color : '#e5e7eb' }}></div>
+                                                        <div className={`progress-step ${order.isDelivered ? 'completed' : ''}`}>
+                                                            <div className="step-dot"></div>
+                                                            <span>Teslim Edildi</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Order Items */}
+                                                    <div className="order-items-grid">
+                                                        {order.orderItems.map((item, idx) => (
+                                                            <div key={idx} className="order-item-card">
+                                                                <div className="item-image-wrapper">
+                                                                    <img src={item.image} alt={item.name} />
+                                                                    <span className="item-qty-badge">{item.qty}</span>
+                                                                </div>
+                                                                <div className="item-info">
+                                                                    <span className="item-name">{item.name}</span>
+                                                                    <span className="item-price">₺{(item.price * item.qty).toFixed(2)}</span>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* Order Footer */}
+                                                    <div className="order-footer">
+                                                        <div className="footer-left">
+                                                            <div className="shipping-address">
+                                                                <span className="label">Teslimat Adresi</span>
+                                                                <span className="value">{order.shippingAddress.city}, {order.shippingAddress.country}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="footer-right">
+                                                            <div className="order-total">
+                                                                <span className="label">Toplam</span>
+                                                                <span className="value">₺{order.totalPrice.toFixed(2)}</span>
+                                                            </div>
+                                                            <div className="order-actions">
+                                                                {(order.status === 'shipped' || order.status === 'delivered' || order.trackingNumber) && (
+                                                                    <Link 
+                                                                        to={`/order/${order._id}/tracking`} 
+                                                                        className="track-order-btn"
+                                                                    >
+                                                                        📦 Kargo Takibi
+                                                                    </Link>
+                                                                )}
+                                                                {canRequestReturn(order) && (
+                                                                    <Link 
+                                                                        to={`/return-request/${order._id}`} 
+                                                                        className="return-request-btn"
+                                                                    >
+                                                                        İade Talebi Oluştur
+                                                                    </Link>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -652,61 +789,123 @@ const Profile = () => {
                                 <h2>Password & Security</h2>
                                 <p className="section-desc">Update your password to keep your account secure</p>
 
-                                <form onSubmit={handleSubmit} className="profile-form">
-                                    <div className="form-group">
-                                        <label>New Password</label>
-                                        <div className="password-input">
-                                            <input
-                                                type={showPassword ? 'text' : 'password'}
-                                                name="password"
-                                                value={formData.password}
-                                                onChange={handleChange}
-                                                placeholder="Enter new password"
-                                                minLength={6}
-                                            />
+                                <div className="profile-form">
+                                    {/* Step 0: Enter new password */}
+                                    {passwordChangeStep === 0 && (
+                                        <>
+                                            <div className="form-group">
+                                                <label>New Password</label>
+                                                <div className="password-input">
+                                                    <input
+                                                        type={showPassword ? 'text' : 'password'}
+                                                        name="password"
+                                                        value={formData.password}
+                                                        onChange={handleChange}
+                                                        placeholder="Enter new password"
+                                                        minLength={6}
+                                                    />
+                                                    <button 
+                                                        type="button" 
+                                                        className="toggle-password"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                    >
+                                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label>Confirm New Password</label>
+                                                <div className="password-input">
+                                                    <input
+                                                        type={showConfirmPassword ? 'text' : 'password'}
+                                                        name="confirmPassword"
+                                                        value={formData.confirmPassword}
+                                                        onChange={handleChange}
+                                                        placeholder="Confirm new password"
+                                                    />
+                                                    <button 
+                                                        type="button" 
+                                                        className="toggle-password"
+                                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                    >
+                                                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <p className="password-hint">
+                                                Password must be at least 6 characters long. A verification code will be sent to your email.
+                                            </p>
+
                                             <button 
-                                                type="button" 
-                                                className="toggle-password"
-                                                onClick={() => setShowPassword(!showPassword)}
+                                                type="button"
+                                                className="btn-save" 
+                                                disabled={sendingCode || !formData.password || !formData.confirmPassword}
+                                                onClick={handleRequestPasswordCode}
                                             >
-                                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                <Mail size={18} />
+                                                {sendingCode ? 'Sending Code...' : 'Send Verification Code'}
                                             </button>
-                                        </div>
-                                    </div>
+                                        </>
+                                    )}
 
-                                    <div className="form-group">
-                                        <label>Confirm New Password</label>
-                                        <div className="password-input">
-                                            <input
-                                                type={showConfirmPassword ? 'text' : 'password'}
-                                                name="confirmPassword"
-                                                value={formData.confirmPassword}
-                                                onChange={handleChange}
-                                                placeholder="Confirm new password"
-                                            />
+                                    {/* Step 1: Enter verification code */}
+                                    {passwordChangeStep === 1 && (
+                                        <>
+                                            <div className="verification-info">
+                                                <Shield size={48} className="verification-icon" />
+                                                <h3>Enter Verification Code</h3>
+                                                <p>We've sent a 6-digit code to your email address. Please enter it below to confirm your password change.</p>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label>Verification Code</label>
+                                                <input
+                                                    type="text"
+                                                    value={verificationCode}
+                                                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                    placeholder="Enter 6-digit code"
+                                                    className="verification-code-input"
+                                                    maxLength={6}
+                                                />
+                                            </div>
+
+                                            <p className="password-hint">
+                                                The code will expire in 10 minutes. Didn't receive it? Check your spam folder or request a new code.
+                                            </p>
+
+                                            <div className="button-group">
+                                                <button 
+                                                    type="button"
+                                                    className="btn-cancel" 
+                                                    onClick={handleCancelPasswordChange}
+                                                >
+                                                    <X size={18} />
+                                                    Cancel
+                                                </button>
+                                                <button 
+                                                    type="button"
+                                                    className="btn-save" 
+                                                    disabled={verifyingCode || verificationCode.length !== 6}
+                                                    onClick={handleVerifyAndChangePassword}
+                                                >
+                                                    <Shield size={18} />
+                                                    {verifyingCode ? 'Verifying...' : 'Verify & Change Password'}
+                                                </button>
+                                            </div>
+
                                             <button 
-                                                type="button" 
-                                                className="toggle-password"
-                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                type="button"
+                                                className="btn-resend" 
+                                                onClick={handleRequestPasswordCode}
+                                                disabled={sendingCode}
                                             >
-                                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                {sendingCode ? 'Sending...' : 'Resend Code'}
                                             </button>
-                                        </div>
-                                    </div>
-
-                                    <p className="password-hint">
-                                        Password must be at least 6 characters long. Leave empty if you don't want to change it.
-                                    </p>
-
-                                    <button 
-                                        type="submit" 
-                                        className="btn-save" 
-                                        disabled={saving || (!formData.password && !formData.confirmPassword)}
-                                    >
-                                        <Save size={18} />
-                                        {saving ? 'Updating...' : 'Update Password'}
-                                    </button>
-                                </form>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -1174,6 +1373,84 @@ const Profile = () => {
                     margin-bottom: 1.5rem;
                 }
 
+                .verification-info {
+                    text-align: center;
+                    padding: 2rem;
+                    background: rgba(212, 175, 55, 0.05);
+                    border-radius: 12px;
+                    margin-bottom: 2rem;
+                }
+
+                .verification-icon {
+                    color: var(--color-gold);
+                    margin-bottom: 1rem;
+                }
+
+                .verification-info h3 {
+                    font-size: 1.25rem;
+                    margin-bottom: 0.5rem;
+                    color: var(--color-text);
+                }
+
+                .verification-info p {
+                    color: var(--color-text-muted);
+                    font-size: 0.95rem;
+                    line-height: 1.6;
+                }
+
+                .verification-code-input {
+                    text-align: center;
+                    font-size: 1.5rem !important;
+                    letter-spacing: 8px;
+                    font-weight: 600;
+                    font-family: 'Courier New', monospace;
+                }
+
+                .button-group {
+                    display: flex;
+                    gap: 1rem;
+                    margin-bottom: 1rem;
+                }
+
+                .btn-cancel {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 1rem 2rem;
+                    background: transparent;
+                    color: var(--color-text-muted);
+                    border: 1px solid rgba(0,0,0,0.1);
+                    border-radius: 6px;
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .btn-cancel:hover {
+                    background: rgba(0,0,0,0.05);
+                    color: var(--color-text);
+                }
+
+                .btn-resend {
+                    background: none;
+                    border: none;
+                    color: var(--color-gold);
+                    font-size: 0.9rem;
+                    cursor: pointer;
+                    padding: 0.5rem 0;
+                    text-decoration: underline;
+                }
+
+                .btn-resend:hover {
+                    color: #c9a227;
+                }
+
+                .btn-resend:disabled {
+                    color: var(--color-text-muted);
+                    cursor: not-allowed;
+                }
+
                 .btn-save {
                     display: inline-flex;
                     align-items: center;
@@ -1241,125 +1518,311 @@ const Profile = () => {
                 }
 
                 .order-card {
-                    background: rgba(0, 0, 0, 0.2);
-                    border: 1px solid rgba(212, 175, 55, 0.15);
-                    border-radius: 10px;
+                    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+                    border: 1px solid rgba(212, 175, 55, 0.3);
+                    border-radius: 16px;
                     overflow: hidden;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+                    transition: transform 0.3s, box-shadow 0.3s;
+                }
+
+                .order-card:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 12px 40px rgba(212, 175, 55, 0.15);
+                    border-color: rgba(212, 175, 55, 0.5);
                 }
 
                 .order-header {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 1rem 1.25rem;
-                    background: rgba(212, 175, 55, 0.05);
-                    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+                    padding: 1.25rem 1.5rem;
+                    background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.03));
+                    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
                 }
 
-                .order-info {
+                .order-meta {
                     display: flex;
                     flex-direction: column;
-                    gap: 0.25rem;
+                    gap: 0.35rem;
                 }
 
                 .order-id {
-                    font-weight: 600;
-                    color: var(--color-text);
-                    font-size: 0.95rem;
+                    font-weight: 700;
+                    font-size: 1.1rem;
+                    color: #b8860b;
+                    letter-spacing: 0.5px;
                 }
 
                 .order-date {
                     font-size: 0.85rem;
-                    color: var(--color-text-muted);
+                    color: #666;
                 }
 
-                .order-status {
-                    padding: 0.375rem 0.875rem;
-                    border-radius: 20px;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    color: white;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                }
-
-                .order-items {
-                    padding: 1rem 1.25rem;
-                }
-
-                .order-item {
+                .order-status-badge {
                     display: flex;
                     align-items: center;
-                    gap: 1rem;
-                    padding: 0.75rem 0;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    gap: 0.5rem;
+                    padding: 0.6rem 1.2rem;
+                    border-radius: 25px;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    border: 2px solid;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
                 }
 
-                .order-item:last-child {
-                    border-bottom: none;
+                .status-icon {
+                    font-size: 1.1rem;
                 }
 
-                .order-item img {
-                    width: 50px;
-                    height: 50px;
-                    object-fit: cover;
-                    border-radius: 6px;
+                /* Order Progress */
+                .order-progress {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 1.25rem 1.5rem;
+                    background: linear-gradient(135deg, #f0f4f8, #e8ecf0);
+                    gap: 0;
                 }
 
-                .item-details {
+                .progress-step {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 0.5rem;
+                    opacity: 0.4;
+                    transition: opacity 0.3s;
+                }
+
+                .progress-step.active,
+                .progress-step.completed {
+                    opacity: 1;
+                }
+
+                .progress-step .step-dot {
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: #d1d5db;
+                    border: 3px solid #e5e7eb;
+                    transition: all 0.3s;
+                }
+
+                .progress-step.active .step-dot {
+                    background: #d4af37;
+                    border-color: #b8860b;
+                    box-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+                }
+
+                .progress-step.completed .step-dot {
+                    background: #22c55e;
+                    border-color: #16a34a;
+                    box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+                }
+
+                .progress-step span {
+                    font-size: 0.8rem;
+                    color: #6b7280;
+                    white-space: nowrap;
+                    font-weight: 500;
+                }
+
+                .progress-step.active span,
+                .progress-step.completed span {
+                    color: #1f2937;
+                    font-weight: 600;
+                }
+
+                .progress-line {
                     flex: 1;
+                    height: 3px;
+                    max-width: 80px;
+                    background: #e5e7eb;
+                    margin: 0 0.5rem;
+                    margin-bottom: 1.5rem;
+                    border-radius: 2px;
+                }
+
+                /* Order Items Grid */
+                .order-items-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                    gap: 1rem;
+                    padding: 1.25rem 1.5rem;
+                    background: #fafbfc;
+                }
+
+                .order-item-card {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.875rem;
+                    padding: 0.875rem;
+                    background: #ffffff;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 12px;
+                    transition: all 0.2s;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                }
+
+                .order-item-card:hover {
+                    background: #ffffff;
+                    border-color: #d4af37;
+                    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.15);
+                }
+
+                .item-image-wrapper {
+                    position: relative;
+                    flex-shrink: 0;
+                }
+
+                .item-image-wrapper img {
+                    width: 55px;
+                    height: 55px;
+                    object-fit: cover;
+                    border-radius: 10px;
+                    border: 2px solid #e5e7eb;
+                }
+
+                .item-qty-badge {
+                    position: absolute;
+                    top: -6px;
+                    right: -6px;
+                    background: linear-gradient(135deg, #d4af37, #b8860b);
+                    color: #ffffff;
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    width: 22px;
+                    height: 22px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 2px 6px rgba(212, 175, 55, 0.4);
+                }
+
+                .item-info {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.25rem;
+                    min-width: 0;
+                }
+
+                .item-info .item-name {
+                    font-size: 0.9rem;
+                    color: #1f2937;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    font-weight: 500;
+                }
+
+                .item-info .item-price {
+                    font-size: 1rem;
+                    font-weight: 700;
+                    color: #b8860b;
+                }
+
+                /* Order Footer */
+                .order-footer {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 1.25rem 1.5rem;
+                    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), #ffffff);
+                    border-top: 2px solid rgba(212, 175, 55, 0.2);
+                    flex-wrap: wrap;
+                    gap: 1rem;
+                }
+
+                .footer-left, .footer-right {
+                    display: flex;
+                    align-items: center;
+                    gap: 1.5rem;
+                }
+
+                .footer-right {
+                    flex-wrap: wrap;
+                }
+
+                .shipping-address, .order-total {
                     display: flex;
                     flex-direction: column;
                     gap: 0.25rem;
                 }
 
-                .item-name {
-                    color: var(--color-text);
-                    font-size: 0.9rem;
-                }
-
-                .item-qty {
-                    font-size: 0.8rem;
-                    color: var(--color-text-muted);
-                }
-
-                .item-price {
+                .shipping-address .label,
+                .order-total .label {
+                    font-size: 0.75rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: #6b7280;
                     font-weight: 600;
-                    color: var(--color-gold);
                 }
 
-                .order-footer {
+                .shipping-address .value {
+                    font-size: 0.9rem;
+                    color: #374151;
+                    font-weight: 500;
+                }
+
+                .order-total .value {
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                    color: #b8860b;
+                }
+
+                .order-actions {
                     display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 1rem 1.25rem;
-                    background: rgba(212, 175, 55, 0.03);
-                    border-top: 1px solid rgba(212, 175, 55, 0.1);
-                }
-
-                .shipping-info {
-                    font-size: 0.85rem;
-                    color: var(--color-text-muted);
-                }
-
-                .shipping-info strong {
-                    color: var(--color-text);
-                }
-
-                .order-total {
-                    display: flex;
-                    align-items: center;
                     gap: 0.75rem;
-                    font-size: 0.95rem;
+                    flex-wrap: wrap;
                 }
 
-                .order-total span {
-                    color: var(--color-text-muted);
+                .track-order-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.7rem 1.4rem;
+                    background: linear-gradient(135deg, #eff6ff, #dbeafe);
+                    border: 2px solid #60a5fa;
+                    color: #2563eb;
+                    border-radius: 10px;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    text-decoration: none;
+                    box-shadow: 0 2px 8px rgba(96, 165, 250, 0.2);
                 }
 
-                .order-total strong {
-                    font-size: 1.1rem;
-                    color: var(--color-gold);
+                .track-order-btn:hover {
+                    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+                    border-color: #3b82f6;
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+                    transform: translateY(-1px);
+                }
+
+                .return-request-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.7rem 1.4rem;
+                    background: linear-gradient(135deg, #fff7ed, #ffedd5);
+                    border: 2px solid #fb923c;
+                    color: #ea580c;
+                    border-radius: 10px;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    text-decoration: none;
+                    box-shadow: 0 2px 8px rgba(251, 146, 60, 0.2);
+                }
+
+                .return-request-btn:hover {
+                    background: linear-gradient(135deg, #ffedd5, #fed7aa);
+                    border-color: #ea580c;
+                    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+                    transform: translateY(-1px);
                 }
 
                 /* Responsive */
@@ -1398,10 +1861,46 @@ const Profile = () => {
                         grid-template-columns: 1fr;
                     }
 
+                    .order-header {
+                        flex-direction: column;
+                        gap: 1rem;
+                        align-items: flex-start;
+                    }
+
+                    .order-progress {
+                        padding: 1rem;
+                        overflow-x: auto;
+                    }
+
+                    .progress-step span {
+                        font-size: 0.65rem;
+                    }
+
+                    .order-items-grid {
+                        grid-template-columns: 1fr;
+                        padding: 1rem;
+                    }
+
                     .order-footer {
                         flex-direction: column;
                         gap: 1rem;
-                        text-align: center;
+                        align-items: stretch;
+                    }
+
+                    .footer-left, .footer-right {
+                        flex-direction: column;
+                        align-items: stretch;
+                        gap: 1rem;
+                    }
+
+                    .order-actions {
+                        flex-direction: column;
+                    }
+
+                    .track-order-btn,
+                    .return-request-btn {
+                        justify-content: center;
+                        width: 100%;
                     }
 
                     .phone-input-group {

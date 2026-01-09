@@ -1,6 +1,6 @@
-# Selené - Frontend Client
+# Lâl - Frontend Client
 
-React-based frontend application for the Selené luxury jewelry e-commerce platform.
+React-based frontend application for the Lâl luxury jewelry e-commerce platform.
 
 ## 🛠️ Tech Stack
 
