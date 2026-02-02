@@ -28,7 +28,7 @@ const Register = () => {
         <div className="auth-page container section">
             <div className="auth-card">
                 <h1 className="auth-title">Create Account</h1>
-                <p className="auth-subtitle">Join the Lâl community</p>
+                <p className="auth-subtitle">Join the Velora community</p>
 
                 {error && <div className="error-message">{error}</div>}
 
